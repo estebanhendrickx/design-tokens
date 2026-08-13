@@ -1,221 +1,103 @@
-# DESIGN.md
+# Design tokens → Tailwind CSS v4
 
-Ce fichier est la référence de design du projet. Il est lu par les agents (Claude Code,
-Claude Design) et par les humains. Toute règle qui n'est pas écrite ici n'existe pas.
+Ce projet transforme tes **design tokens** Figma (au format standard **W3C DTCG**,
+c.-à-d. `$value` / `$type`) en un CSS final utilisable dans un site, via **Tailwind CSS v4**.
 
-> **À compléter avant usage** — les zones marquées `⟨à remplir⟩` doivent être renseignées
-> avec les valeurs réelles du projet. Une valeur inventée est pire qu'une valeur absente.
+> Format : le fichier `tokens/tokens.json` suit le standard **DTCG**. Il est lu
+> **nativement** par Style Dictionary v4 — aucune surcouche spécifique Tokens Studio
+> n'est nécessaire. Les blocs `$themes` / `$metadata` de l'export sont ignorés
+> automatiquement, et le nom du set (ex. `Base/Values`) est retiré des variables.
 
----
-
-## 1. Règle fondamentale
-
-**La source de vérité est `tokens/tokens.json`.**
-
-Ces tokens sont édités dans Figma via Tokens Studio, poussés sur Git, puis compilés en
-variables CSS par Style Dictionary, elles-mêmes consommées par Tailwind.
-
-Conséquences, sans exception :
-
-- Aucune valeur de couleur, de rayon ou de typographie en dur dans le code.
-- Aucune modification directe des variables CSS générées — elles sont écrasées à chaque build.
-- Un besoin non couvert par un token existant se traite en ajoutant un token, pas en
-  contournant le système.
-
-Si une tâche semble exiger une valeur en dur, c'est le signal qu'il manque un token.
-Le signaler plutôt que le contourner.
-
----
-
-## 2. Ce qui vient de Tailwind, ce qui vient de nous
-
-| Domaine | Source | Règle |
-|---|---|---|
-| Couleurs | **Nos tokens** | La palette Tailwind par défaut est désactivée. `bg-blue-500` n'existe pas. |
-| Typographie | **Nos tokens** | Familles, tailles et graisses définies par le système. |
-| Rayons | **Nos tokens** | Un rayon par usage sémantique, pas par valeur. |
-| Espacement | **Tailwind** | On garde l'échelle par défaut (`p-4`, `gap-6`, `space-y-8`…). |
-| Breakpoints | **Tailwind** | Valeurs par défaut conservées. |
-| Ombres | ⟨à remplir⟩ | Préciser si tokenisées ou héritées de Tailwind. |
-
-Le raisonnement : les couleurs et la typographie portent l'identité de marque et doivent
-être verrouillées. L'espacement est une convention de mise en page — l'échelle de Tailwind
-est éprouvée, la réécrire n'apporte rien.
-
----
-
-## 3. Tokens
-
-### Couleurs
-
-Structure sémantique. **Toujours utiliser le niveau sémantique**, jamais la primitive.
-
-| Token | Usage |
-|---|---|
-| `action/primary` | Action principale — un seul par écran |
-| `action/primary-hover` | État survol de l'action principale |
-| `action/secondary` | Action secondaire |
-| `text/default` | Texte courant |
-| `text/muted` | Texte secondaire, légendes |
-| `text/on-action` | Texte posé sur une surface d'action |
-| `surface/default` | Fond de page |
-| `surface/raised` | Cartes, panneaux |
-| `border/default` | Séparateurs, contours |
-| `feedback/error` · `feedback/success` · `feedback/warning` | États système |
-
-⟨à remplir : valeurs hexadécimales de référence⟩
-
-**Interdit :** `bg-blue-500`, `text-gray-700`, `#2563EB`, `rgb(...)` et toute couleur
-littérale. Si la couleur voulue n'a pas de token, la demander.
-
-### Typographie
-
-| Rôle | Token | Valeur |
-|---|---|---|
-| Titres | ⟨famille⟩ | ⟨tailles⟩ |
-| Corps | ⟨famille⟩ | ⟨tailles⟩ |
-| Monospace | ⟨famille⟩ | ⟨tailles⟩ |
-
-⟨à remplir : échelle typographique complète et graisses autorisées⟩
-
-### Rayons
-
-| Token | Usage |
-|---|---|
-| `radius/button` | Boutons, champs de saisie |
-| `radius/card` | Cartes, panneaux, modales |
-| `radius/full` | Pastilles, avatars |
-
-Nommer par usage, jamais par valeur. `radius/8` est un mauvais nom : le jour où le rayon
-passe à 10, le nom ment.
-
----
-
-## 4. Composants
-
-Les composants du design system vivent dans `⟨chemin du package UI⟩`.
-
-**Règle d'or : réutiliser, ne jamais recréer.**
-
-Avant de construire un élément d'interface, vérifier s'il existe déjà. Un bouton
-reconstruit en `<div>` stylée est un défaut, même s'il est visuellement correct.
-
-### Inventaire
-
-| Composant | État | Variantes |
-|---|---|---|
-| `Button` | Disponible | `primary`, `secondary`, `ghost` × `sm`, `md`, `lg` |
-| ⟨suivants⟩ | | |
-
-### Correspondance Figma ↔ code
-
-Les noms sont alignés dans les deux sens :
+## Le circuit, en une image
 
 ```
-Figma : Button/Primary/Medium
-Code  : <Button variant="primary" size="md" />
+tokens/tokens.json                (tes tokens DTCG, synchronisés depuis Figma)
+        │
+        ▼  Style Dictionary  (npm run tokens)
+build/css/tokens.css              (--token-colors-primary, --token-radius-button, …)
+        │
+        ▼  branché dans src/input.css via @theme
+        │
+        ▼  Tailwind CSS v4  (npm run css)
+dist/app.css                      ◀── index.html (page de démo du bouton)
 ```
 
-Cette correspondance est ce qui permet à Code Connect de fonctionner. Renommer d'un côté
-sans renommer de l'autre casse la chaîne.
+## Ce qui est branché sur tes tokens
 
-### Si un composant manque
+- ✅ **Couleurs** — remplacent la palette par défaut de Tailwind (`bg-primary`, `text-default`, …)
+- ✅ **Rayon** — remplace les rayons par défaut (`rounded-button`)
+- ✅ **Typographie** — police **Rajdhani** (Google Fonts) + graisses (400/500/600/700)
+  et échelle de tailles (12→30px) issues des tokens. Les tailles reprennent l'échelle
+  de base de Tailwind.
+- 🔒 **Espacement et breakpoints** — **inchangés** : ce sont les valeurs par défaut de Tailwind
+  (`p-4`, `p-6`, `md:`, `lg:`…), comme demandé.
 
-Ne pas improviser. Composer à partir des composants existants, ou signaler le manque au
-propriétaire du design system. Un composant créé en local devient une dette immédiate.
+## Prérequis (une seule fois)
 
----
+1. Installer **Node.js** (version LTS) depuis https://nodejs.org
+2. Dans le Terminal, se placer dans ce dossier et installer les outils :
 
-## 5. Principes de mise en page
+   ```bash
+   npm install
+   ```
 
-- Une seule action principale par écran. Si tout est mis en avant, rien ne l'est.
-- Hiérarchie par la taille et l'espacement avant la couleur.
-- Densité cohérente à l'intérieur d'une même vue.
-- Contraste texte/fond conforme WCAG AA au minimum (4.5:1 pour le corps de texte).
-- Tous les états interactifs sont définis : repos, survol, focus, actif, désactivé,
-  chargement. Un composant sans état focus visible est incomplet.
+## La commande à retenir
 
-⟨à remplir : conventions de grille, largeurs de conteneur, densité⟩
+Pour tout recompiler (tokens **puis** CSS Tailwind) en une seule fois :
 
----
-
-## 6. Ton éditorial
-
-⟨à remplir⟩ Exemples de dimensions à préciser :
-
-- Tutoiement ou vouvoiement
-- Libellés de boutons : à l'infinitif (« Enregistrer ») ou à la première personne
-- Messages d'erreur : ce qui s'est passé, puis quoi faire — jamais de blâme
-- Ponctuation : point final dans les messages courts, oui ou non
-- Termes bannis et leurs remplacements
-
----
-
-## 7. Anti-patterns
-
-Ce que nous ne faisons pas, et qu'aucune génération ne doit produire :
-
-- Couleurs, rayons ou tailles de police en dur
-- Classes de couleur Tailwind par défaut
-- Composants recréés alors qu'ils existent dans le système
-- `!important` pour forcer un style
-- Styles inline sauf valeur calculée dynamiquement
-- Marges négatives pour corriger un espacement
-- Un nouveau gris, un nouveau bleu, un nouveau rayon « juste pour ce cas-là »
-- Texte centré pour les paragraphes et les listes
-- Animations supérieures à 300 ms sur une interaction directe
-
----
-
-## 8. Instructions pour les agents
-
-Quand tu génères ou modifies de l'interface dans ce projet :
-
-1. Lis `tokens/tokens.json` avant d'écrire du style. C'est le vocabulaire disponible.
-2. Réutilise les composants existants. Ne recrée jamais un équivalent.
-3. N'utilise que les tokens sémantiques listés en section 3.
-4. Garde l'échelle d'espacement Tailwind par défaut.
-5. Si une valeur nécessaire n'a pas de token, **arrête-toi et signale-le** plutôt que
-   d'inventer. Un token manquant est une information utile ; une valeur en dur est un bug
-   silencieux.
-6. Vérifie les six états interactifs sur tout élément cliquable.
-7. À la fin, liste les tokens utilisés — cela permet de vérifier qu'aucune valeur littérale
-   ne s'est glissée dans le rendu.
-
----
-
-## 9. Workflow
-
-```
-Designer (Tokens Studio, dans Figma)
-        ↓ Push sur la branche tokens/design
-   tokens/tokens.json  ← SOURCE DE VÉRITÉ
-        ↓ revue en Pull Request
-        ↓ Style Dictionary
-   variables CSS → Tailwind (@theme)
-        ↓
-   Produits · Storybook · Claude Code · Claude Design
+```bash
+npm run build
 ```
 
-Commande de recompilation : `⟨à remplir⟩`
+Puis ouvre **`index.html`** dans ton navigateur pour voir le résultat.
 
----
+### Les autres commandes
 
-## 10. Gouvernance
+```bash
+npm run refresh   # récupère les tokens à jour depuis GitHub PUIS fait le build complet
+npm run tokens    # compile seulement les tokens (Style Dictionary)
+npm run css        # compile seulement le CSS (Tailwind)
+npm run pull      # télécharge seulement le dernier tokens.json depuis GitHub
+```
 
-| Rôle | Personne |
-|---|---|
-| Propriétaire du design system | ⟨à remplir⟩ |
-| Valideur des PR de tokens | ⟨à remplir⟩ |
-| Référent bibliothèque Figma | ⟨à remplir⟩ |
+> 💡 Après un changement de tokens dans Figma **poussé sur GitHub**,
+> la commande la plus complète est **`npm run refresh`**.
 
-**Versionnement du package :** patch = correction sans impact · minor = ajout
-rétrocompatible · major = rupture, nécessite communication et fenêtre de migration.
+## Pousser des tokens vers GitHub, puis les récupérer dans Figma
 
-**Revue trimestrielle de dérive :** recenser les composants recréés hors système. La dérive
-n'est pas un échec des équipes — c'est le signal qu'il manque quelque chose au système ou
-qu'il est trop pénible à utiliser. Dans les deux cas, c'est le système qu'on corrige.
+Ici, `tokens/tokens.json` a été enrichi **en local** (typographie). Pour partager ces
+tokens et les faire remonter dans Figma :
 
----
+### A. Mettre le fichier à jour sur GitHub (via le site, sans Git)
 
-*Dernière mise à jour : ⟨date⟩ · Modifications par PR uniquement.*
+1. Ouvre `https://github.com/estebanhendrickx/design-tokens/blob/main/tokens.json`
+2. Clique l'icône **crayon** (Edit this file).
+3. Remplace tout le contenu par celui de ton `tokens/tokens.json` local.
+4. En bas : **Commit changes**.
+
+> ⚠️ Tant que tu n'as pas fait ça, ne lance pas `npm run pull` : il écraserait
+> ta version locale (typo comprise) par l'ancienne version de GitHub.
+
+### B. Récupérer dans Figma (plugin Tokens Studio)
+
+1. Dans Figma, ouvre **Tokens Studio**.
+2. **Settings → Sync → GitHub** : renseigne le repo `estebanhendrickx/design-tokens`,
+   la branche `main` et le fichier `tokens.json` (un *personal access token* GitHub est requis).
+3. Clique **Pull** pour importer les tokens du repo.
+4. Applique-les : Tokens Studio peut créer les **variables Figma** correspondantes
+   (couleurs, nombres) et utiliser la police/les tailles dans des **styles de texte**.
+
+> Note : Figma ne connaît que 4 types de variables (couleur, nombre, texte, booléen).
+> Les couleurs et tailles arrivent donc en variables ; la **police/les graisses** se
+> matérialisent surtout via des **styles de texte** côté Figma.
+
+## Où regarder si besoin
+
+| Fichier             | Rôle                                             | À modifier à la main ? |
+| ------------------- | ------------------------------------------------ | ---------------------- |
+| `tokens/tokens.json`| Tes tokens (copie locale de GitHub)              | Non (via Tokens Studio)|
+| `src/input.css`     | Branche les tokens sur Tailwind (`@theme`) + bouton | Oui, si besoin      |
+| `index.html`        | Page de démo                                     | Oui                    |
+| `build/css/tokens.css` | Tokens compilés (généré)                      | **Jamais**             |
+| `dist/app.css`      | CSS final du site (généré)                       | **Jamais**             |
+```
